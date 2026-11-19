@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2563eb" />
+  <title>Task Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div id="authView" class="auth-screen">
+    <div class="auth-card">
+      <div class="brand-mark">✓</div>
+      <p class="eyebrow">PERSONAL PRODUCTIVITY</p>
+      <h1>Task Manager</h1>
+      <p class="muted">Quản lý công việc. Làm chủ thời gian.</p>
+      <form id="authForm">
+        <label>Email<input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label>Mật khẩu<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="Ít nhất 6 ký tự"></label>
+        <button class="btn primary full" id="authSubmit" type="submit">Đăng nhập</button>
+      </form>
+      <button class="text-button" id="toggleAuth" type="button">Chưa có tài khoản? Đăng ký</button>
+      <p id="authMessage" class="form-message" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <a class="brand" href="#"><span class="brand-mark small">✓</span><span>Task Manager</span></a>
+      <div class="side-label">MENU</div>
+      <nav class="main-nav">
+        <button class="nav-item active" data-view="dashboard"><span>▦</span> Tổng quan</button>
+        <button class="nav-item" data-view="tasks"><span>☷</span> Tất cả công việc</button>
+        <button class="nav-item" data-view="today"><span>◷</span> Hôm nay</button>
+        <button class="nav-item" data-view="upcoming"><span>▣</span> Sắp tới</button>
+      </nav>
+      <div class="side-label category-heading">DANH MỤC</div>
+      <div id="categoryList" class="category-list"></div>
+      <div class="sidebar-bottom">
+        <div class="user-chip"><div class="avatar" id="userAvatar">U</div><div class="user-info"><strong id="userEmail">Tài khoản</strong><small>Đang hoạt động</small></div></div>
+        <button id="logoutBtn" class="nav-item logout"><span>↪</span> Đăng xuất</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div><p class="eyebrow" id="todayLabel">WORKSPACE</p><h2 id="pageTitle">Tổng quan</h2></div>
+        <div class="top-actions"><span class="connection-dot">● <span>Đã kết nối</span></span><button id="addTaskTop" class="btn primary">＋ Tạo công việc</button></div>
+      </header>
+
+      <section id="dashboardView" class="view">
+        <div class="welcome-row"><div><h3>Xin chào! 👋</h3><p class="muted">Cùng hoàn thành những việc quan trọng hôm nay.</p></div><div class="date-pill" id="currentDate"></div></div>
+        <div class="stats-grid">
+          <article class="stat-card"><div class="stat-icon blue">☷</div><span>Tổng công việc</span><strong id="statTotal">0</strong><small>Trong danh sách của bạn</small></article>
+          <article class="stat-card"><div class="stat-icon green">✓</div><span>Đã hoàn thành</span><strong id="statDone">0</strong><small>Công việc hoàn tất</small></article>
+          <article class="stat-card"><div class="stat-icon orange">◷</div><span>Đến hạn hôm nay</span><strong id="statToday">0</strong><small>Cần xử lý trong hôm nay</small></article>
+          <article class="stat-card"><div class="stat-icon red">!</div><span>Quá hạn</span><strong id="statOverdue">0</strong><small>Cần được chú ý</small></article>
+        </div>
+        <div class="content-grid">
+          <section class="panel"><div class="panel-heading"><div><h3>Công việc gần đây</h3><p class="muted">Những việc cần bạn quan tâm</p></div><button class="text-button" data-goto="tasks">Xem tất cả →</button></div><div id="dashboardTasks" class="task-list"></div></section>
+          <section class="panel telegram-panel"><div class="telegram-logo">➤</div><h3>Kết nối Telegram</h3><p class="muted">Nhận nhắc việc tự động ngay trên Telegram khi đến giờ.</p><div id="telegramStatus" class="telegram-status">Chưa liên kết Telegram</div><button id="linkTelegramBtn" class="btn telegram-btn full">Liên kết Telegram</button><p class="tiny muted">Bot chỉ gửi thông báo cho tài khoản đã liên kết.</p></section>
+        </div>
+      </section>
+
+      <section id="tasksView" class="view hidden">
+        <div class="toolbar"><div class="filter-tabs"><button class="filter-tab active" data-filter="all">Tất cả</button><button class="filter-tab" data-filter="pending">Chưa làm</button><button class="filter-tab" data-filter="completed">Hoàn thành</button></div><input id="taskSearch" class="search-input" type="search" placeholder="⌕  Tìm công việc..."></div>
+        <div class="panel"><div id="allTasks" class="task-list"></div></div>
+      </section>
+
+      <section id="todayView" class="view hidden"><div class="panel"><div class="panel-heading"><div><h3>Việc cần làm hôm nay</h3><p class="muted">Tập trung xử lý các công việc đến hạn.</p></div></div><div id="todayTasks" class="task-list"></div></div></section>
+      <section id="upcomingView" class="view hidden"><div class="panel"><div class="panel-heading"><div><h3>Công việc sắp tới</h3><p class="muted">Các công việc có hạn trong tương lai.</p></div></div><div id="upcomingTasks" class="task-list"></div></div></section>
+    </main>
+  </div>
+
+  <dialog id="taskDialog" class="modal">
+    <form id="taskForm" method="dialog">
+      <div class="modal-heading"><div><p class="eyebrow">TASK DETAILS</p><h3 id="taskDialogTitle">Tạo công việc</h3></div><button type="button" class="icon-button" id="closeTaskDialog">×</button></div>
+      <input id="taskId" type="hidden">
+      <label>Tên công việc<input id="taskTitle" required maxlength="120" placeholder="Ví dụ: Kiểm tra hệ thống máy chủ"></label>
+      <label>Mô tả<textarea id="taskDescription" rows="3" placeholder="Ghi chú chi tiết (không bắt buộc)"></textarea></label>
+      <div class="form-grid">
+        <label>Danh mục<select id="taskCategory"><option value="Cá nhân">Cá nhân</option><option value="Công việc">Công việc</option><option value="IT">IT</option><option value="Gia đình">Gia đình</option><option value="Khác">Khác</option></select></label>
+        <label>Độ ưu tiên<select id="taskPriority"><option value="medium">Trung bình</option><option value="high">Cao</option><option value="low">Thấp</option></select></label>
+        <label>Ngày đến hạn<input id="taskDueDate" type="date"></label>
+        <label>Giờ đến hạn<input id="taskDueTime" type="time"></label>
+      </div>
+      <label class="check-row"><input id="taskReminder" type="checkbox"> Nhắc tôi qua Telegram vào thời điểm đến hạn</label>
+      <p class="tiny muted">Để nhận Telegram, bạn cần liên kết bot trong trang Tổng quan. Thời gian sử dụng múi giờ Asia/Ho_Chi_Minh.</p>
+      <div class="modal-actions"><button type="button" class="btn secondary" id="cancelTask">Hủy</button><button type="submit" class="btn primary">Lưu công việc</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="telegramDialog" class="modal compact-modal">
+    <div class="modal-heading"><div><p class="eyebrow">TELEGRAM NOTIFICATION</p><h3>Liên kết Telegram</h3></div><button type="button" class="icon-button" id="closeTelegramDialog">×</button></div>
+    <p class="muted">Nhấn nút bên dưới để mở Telegram và gửi lệnh liên kết cho bot.</p>
+    <div class="link-steps"><span>1</span><p>Mở Telegram bằng nút bên dưới.</p><span>2</span><p>Nhấn <b>Start</b> trong cuộc trò chuyện với bot.</p><span>3</span><p>Quay lại đây, trạng thái sẽ tự cập nhật sau khi liên kết.</p></div>
+    <a id="telegramDeepLink" class="btn telegram-btn full" target="_blank" rel="noopener">Mở Telegram Bot ↗</a>
+    <p class="tiny muted">Không chia sẻ đường dẫn liên kết này với người khác.</p>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
