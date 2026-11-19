@@ -22,19 +22,41 @@ export function toDateTimeLocal(date, time) {
   return new Date(y, m - 1, d, hh, mm, 0);
 }
 
-export function renderTask(task, handlers = {}) {
-  const row = document.createElement("div");
-  row.className = "task-row";
+function makeAction(label, title, action) {
+  const button = document.createElement("button");
+  button.className = "icon-button";
+  button.type = "button";
+  button.textContent = label;
+  button.title = title;
+  button.setAttribute("aria-label", title);
+  button.addEventListener("click", action);
+  return button;
+}
+
+function renderTaskItem(item, type, task, handlers) {
+  const row = document.createElement("label");
+  row.className = "child-item";
   const check = document.createElement("input");
   check.type = "checkbox";
-  check.className = "task-check";
-  check.checked = task.status === "completed";
-  check.title = "Đánh dấu hoàn thành";
-  check.addEventListener("change", () => handlers.toggle?.(task, check.checked));
+  check.checked = type === "checklist" ? !!item.completed : item.status === "completed";
+  check.addEventListener("change", () => {
+    if (type === "checklist") handlers.toggleChecklist?.(task, item.id, check.checked);
+    else handlers.toggleSubtask?.(task, item.id, check.checked);
+  });
+  const text = document.createElement("span");
+  text.textContent = item.title;
+  if (check.checked) text.classList.add("child-item-done");
+  row.append(check, text);
+  return row;
+}
+
+export function renderTask(task, handlers = {}, { trash = false } = {}) {
+  const row = document.createElement("div");
+  row.className = "task-row" + (trash ? " task-row-trash" : "");
   const main = document.createElement("div");
   main.className = "task-main";
   const title = document.createElement("div");
-  title.className = "task-title" + (check.checked ? " done" : "");
+  title.className = "task-title" + (task.status === "completed" ? " done" : "");
   title.textContent = task.title || "(Không có tiêu đề)";
   main.append(title);
   if (task.description) {
@@ -54,28 +76,104 @@ export function renderTask(task, handlers = {}) {
   const due = document.createElement("span");
   due.className = "meta-chip";
   due.textContent = task.dueAt ? "Hạn: " + formatDate(task.dueAt) : "Không có hạn";
-  meta.append(category, priority, due);
-  if (task.reminderAt) {
+  meta.append(category, priority);
+  if (task.startAt) {
+    const start = document.createElement("span");
+    start.className = "meta-chip";
+    start.textContent = "Bắt đầu: " + formatDate(task.startAt);
+    meta.append(start);
+  }
+  meta.append(due);
+  if (task.favorite) {
+    const favorite = document.createElement("span");
+    favorite.className = "meta-chip favorite-chip";
+    favorite.textContent = "★ Yêu thích";
+    meta.append(favorite);
+  }
+  if (trash && task.deletedAt) {
+    const deleted = document.createElement("span");
+    deleted.className = "meta-chip";
+    deleted.textContent = "Đã xóa: " + formatDate(task.deletedAt);
+    meta.append(deleted);
+  }
+  if (task.dueAt) {
     const reminder = document.createElement("span");
     reminder.className = "meta-chip";
-    reminder.textContent = "🔔 Có nhắc Telegram";
+    reminder.textContent = "🔔 Báo khi đến hạn";
     meta.append(reminder);
   }
   main.append(meta);
+
+  const checklist = task.checklist || [];
+  const subtasks = task.subtasks || [];
+  const totalItems = checklist.length + subtasks.length;
+  const completedItems = checklist.filter(item => item.completed).length +
+    subtasks.filter(item => item.status === "completed").length;
+  const progress = totalItems
+    ? Math.round(completedItems / totalItems * 100)
+    : (task.status === "completed" ? 100 : 0);
+  const progressRow = document.createElement("div");
+  progressRow.className = "task-progress-row";
+  const progressBar = document.createElement("progress");
+  progressBar.className = "task-progress";
+  progressBar.max = 100;
+  progressBar.value = progress;
+  progressBar.setAttribute("aria-label", `Tiến độ ${progress}%`);
+  const progressLabel = document.createElement("span");
+  progressLabel.textContent = `${progress}%`;
+  progressRow.append(progressBar, progressLabel);
+  main.append(progressRow);
+
+  if (checklist.length) {
+    const list = document.createElement("div");
+    list.className = "task-child-list";
+    const heading = document.createElement("span");
+    heading.className = "task-child-heading";
+    heading.textContent = "Checklist";
+    list.append(heading);
+    checklist.forEach(item => list.append(renderTaskItem(item, "checklist", task, handlers)));
+    main.append(list);
+  }
+  if (subtasks.length) {
+    const list = document.createElement("div");
+    list.className = "task-child-list";
+    const heading = document.createElement("span");
+    heading.className = "task-child-heading";
+    heading.textContent = "Công việc con";
+    list.append(heading);
+    subtasks.forEach(item => list.append(renderTaskItem(item, "subtask", task, handlers)));
+    main.append(list);
+  }
+
   const actions = document.createElement("div");
   actions.className = "task-actions";
-  const edit = document.createElement("button");
-  edit.className = "icon-button"; edit.type = "button"; edit.textContent = "✎"; edit.title = "Sửa";
-  edit.addEventListener("click", () => handlers.edit?.(task));
-  const del = document.createElement("button");
-  del.className = "icon-button"; del.type = "button"; del.textContent = "×"; del.title = "Xóa";
-  del.addEventListener("click", () => handlers.remove?.(task));
-  actions.append(edit, del);
-  row.append(check, main, actions);
+  if (trash) {
+    actions.append(
+      makeAction("↶", "Khôi phục", () => handlers.restore?.(task)),
+      makeAction("×", "Xóa vĩnh viễn", () => handlers.deleteForever?.(task))
+    );
+  } else {
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "task-check";
+    check.checked = task.status === "completed";
+    check.title = "Đánh dấu hoàn thành";
+    check.setAttribute("aria-label", "Đánh dấu hoàn thành");
+    check.addEventListener("change", () => handlers.toggle?.(task, check.checked));
+    actions.append(
+      makeAction(task.favorite ? "★" : "☆", task.favorite ? "Bỏ yêu thích" : "Đánh dấu yêu thích",
+        () => handlers.favorite?.(task)),
+      makeAction("⧉", "Nhân bản", () => handlers.duplicate?.(task)),
+      makeAction("✎", "Sửa", () => handlers.edit?.(task)),
+      makeAction("×", "Chuyển vào thùng rác", () => handlers.remove?.(task))
+    );
+    row.append(check);
+  }
+  row.append(main, actions);
   return row;
 }
 
-export function renderTaskList(container, tasks, handlers) {
+export function renderTaskList(container, tasks, handlers, options) {
   container.replaceChildren();
   if (!tasks.length) {
     const empty = document.createElement("div");
@@ -84,5 +182,5 @@ export function renderTaskList(container, tasks, handlers) {
     container.append(empty);
     return;
   }
-  tasks.forEach(t => container.append(renderTask(t, handlers)));
+  tasks.forEach(t => container.append(renderTask(t, handlers, options)));
 }

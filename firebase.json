@@ -8,8 +8,10 @@
       "functions/**",
       "README.md",
       "package*.json",
+      "telegram-config.txt*",
       "firestore.rules",
-      "firestore.indexes.json"
+      "firestore.indexes.json",
+      "database.rules.json"
     ],
     "cleanUrls": true
   },
@@ -17,11 +19,7 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "runtime": "nodejs20"
-    }
-  ]
+  "database": {
+    "rules": "database.rules.json"
+  }
 }

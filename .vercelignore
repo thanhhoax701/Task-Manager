@@ -1,0 +1,9 @@
+telegram-config.txt
+functions/
+node_modules/
+.vercel/
+.git/
+.env*
+*service*account*.json
+*firebase-adminsdk*.json
+*.pem

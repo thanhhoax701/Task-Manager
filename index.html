@@ -36,6 +36,8 @@
         <button class="nav-item" data-view="tasks"><span>☷</span> Tất cả công việc</button>
         <button class="nav-item" data-view="today"><span>◷</span> Hôm nay</button>
         <button class="nav-item" data-view="upcoming"><span>▣</span> Sắp tới</button>
+        <button class="nav-item" data-view="favorites"><span>★</span> Yêu thích</button>
+        <button class="nav-item" data-view="trash"><span>⌫</span> Thùng rác</button>
       </nav>
       <div class="side-label category-heading">DANH MỤC</div>
       <div id="categoryList" class="category-list"></div>
@@ -61,7 +63,7 @@
         </div>
         <div class="content-grid">
           <section class="panel"><div class="panel-heading"><div><h3>Công việc gần đây</h3><p class="muted">Những việc cần bạn quan tâm</p></div><button class="text-button" data-goto="tasks">Xem tất cả →</button></div><div id="dashboardTasks" class="task-list"></div></section>
-          <section class="panel telegram-panel"><div class="telegram-logo">➤</div><h3>Kết nối Telegram</h3><p class="muted">Nhận nhắc việc tự động ngay trên Telegram khi đến giờ.</p><div id="telegramStatus" class="telegram-status">Chưa liên kết Telegram</div><button id="linkTelegramBtn" class="btn telegram-btn full">Liên kết Telegram</button><p class="tiny muted">Bot chỉ gửi thông báo cho tài khoản đã liên kết.</p></section>
+          <section class="panel telegram-panel"><div class="telegram-logo">➤</div><h3>Telegram Bot</h3><p class="muted">Mở bot Telegram và nhấn Start để bắt đầu trò chuyện.</p><a id="linkTelegramBtn" class="btn telegram-btn full" target="_blank" rel="noopener noreferrer">Mở Telegram Bot ↗</a><p class="tiny muted">Đây là liên kết trực tiếp đến bot; ứng dụng không theo dõi trạng thái Telegram.</p></section>
         </div>
       </section>
 
@@ -72,6 +74,8 @@
 
       <section id="todayView" class="view hidden"><div class="panel"><div class="panel-heading"><div><h3>Việc cần làm hôm nay</h3><p class="muted">Tập trung xử lý các công việc đến hạn.</p></div></div><div id="todayTasks" class="task-list"></div></div></section>
       <section id="upcomingView" class="view hidden"><div class="panel"><div class="panel-heading"><div><h3>Công việc sắp tới</h3><p class="muted">Các công việc có hạn trong tương lai.</p></div></div><div id="upcomingTasks" class="task-list"></div></div></section>
+      <section id="favoritesView" class="view hidden"><div class="panel"><div class="panel-heading"><div><h3>Công việc yêu thích</h3><p class="muted">Các công việc bạn đã ghim.</p></div></div><div id="favoriteTasks" class="task-list"></div></div></section>
+      <section id="trashView" class="view hidden"><div class="panel"><div class="panel-heading"><div><h3>Thùng rác</h3><p class="muted">Khôi phục hoặc xóa vĩnh viễn công việc.</p></div></div><div id="trashTasks" class="task-list"></div></div></section>
     </main>
   </div>
 
@@ -84,21 +88,21 @@
       <div class="form-grid">
         <label>Danh mục<select id="taskCategory"><option value="Cá nhân">Cá nhân</option><option value="Công việc">Công việc</option><option value="IT">IT</option><option value="Gia đình">Gia đình</option><option value="Khác">Khác</option></select></label>
         <label>Độ ưu tiên<select id="taskPriority"><option value="medium">Trung bình</option><option value="high">Cao</option><option value="low">Thấp</option></select></label>
+        <label>Ngày bắt đầu<input id="taskStartDate" type="date"></label>
         <label>Ngày đến hạn<input id="taskDueDate" type="date"></label>
         <label>Giờ đến hạn<input id="taskDueTime" type="time"></label>
       </div>
-      <label class="check-row"><input id="taskReminder" type="checkbox"> Nhắc tôi qua Telegram vào thời điểm đến hạn</label>
-      <p class="tiny muted">Để nhận Telegram, bạn cần liên kết bot trong trang Tổng quan. Thời gian sử dụng múi giờ Asia/Ho_Chi_Minh.</p>
-      <div class="modal-actions"><button type="button" class="btn secondary" id="cancelTask">Hủy</button><button type="submit" class="btn primary">Lưu công việc</button></div>
+      <section class="task-editor-section">
+        <div class="editor-section-heading"><strong>Checklist</strong><button class="text-button" id="addChecklistItem" type="button">＋ Thêm bước</button></div>
+        <div id="checklistEditor" class="editor-list"></div>
+      </section>
+      <section class="task-editor-section">
+        <div class="editor-section-heading"><strong>Công việc con</strong><button class="text-button" id="addSubtaskItem" type="button">＋ Thêm việc con</button></div>
+        <div id="subtaskEditor" class="editor-list"></div>
+      </section>
+      <p class="tiny muted">Công việc có ngày đến hạn sẽ phát âm thanh trong app và gửi thông báo Telegram khi tới hạn. Thời gian sử dụng múi giờ Asia/Ho_Chi_Minh.</p>
+      <div class="modal-actions"><button type="button" class="btn secondary" id="cancelTask">Hủy</button><button type="submit" class="btn primary" id="saveTaskBtn">Lưu công việc</button></div>
     </form>
-  </dialog>
-
-  <dialog id="telegramDialog" class="modal compact-modal">
-    <div class="modal-heading"><div><p class="eyebrow">TELEGRAM NOTIFICATION</p><h3>Liên kết Telegram</h3></div><button type="button" class="icon-button" id="closeTelegramDialog">×</button></div>
-    <p class="muted">Nhấn nút bên dưới để mở Telegram và gửi lệnh liên kết cho bot.</p>
-    <div class="link-steps"><span>1</span><p>Mở Telegram bằng nút bên dưới.</p><span>2</span><p>Nhấn <b>Start</b> trong cuộc trò chuyện với bot.</p><span>3</span><p>Quay lại đây, trạng thái sẽ tự cập nhật sau khi liên kết.</p></div>
-    <a id="telegramDeepLink" class="btn telegram-btn full" target="_blank" rel="noopener">Mở Telegram Bot ↗</a>
-    <p class="tiny muted">Không chia sẻ đường dẫn liên kết này với người khác.</p>
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>

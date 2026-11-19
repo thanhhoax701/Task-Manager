@@ -1,14 +1,14 @@
-# Task Manager – Firebase + Telegram
+# Task Manager – Vercel + Firebase + Telegram Bot
 
-Ứng dụng web quản lý công việc cá nhân, sử dụng Firebase Authentication, Cloud Firestore, Cloud Functions và Telegram Bot.
+Ứng dụng web quản lý công việc cá nhân, triển khai frontend và lịch nhắc Telegram trên Vercel; Firebase Authentication, Cloud Firestore (hồ sơ) và Realtime Database (công việc) vẫn được sử dụng.
 
 ## 1. Yêu cầu
 
 - Node.js 20+
-- Firebase CLI: `npm install -g firebase-tools`
+- Tài khoản Vercel
 - Tài khoản Google/Firebase
 - Telegram và một bot được tạo bằng `@BotFather`
-- Firebase project dùng gói **Blaze** để triển khai Cloud Functions và Cloud Scheduler (có thể phát sinh phí theo mức sử dụng).
+- Node.js 20+
 
 ## 2. Tạo Firebase project
 
@@ -17,156 +17,106 @@
 3. Sao chép `firebaseConfig` và điền vào `js/firebase.js`.
 4. Authentication → Sign-in method → bật **Email/Password**.
 5. Firestore Database → Create database.
-6. Trong Firestore, chọn region gần người dùng (khuyến nghị `asia-southeast1` nếu project mới và còn lựa chọn phù hợp).
-7. Thay `YOUR_PROJECT_ID` trong `.firebaserc.example`, sau đó đổi tên file thành `.firebaserc`.
+6. Realtime Database → Create Database. URL database phải trùng `databaseURL` trong `js/firebase.js`.
+7. Trong Firestore, chọn region gần người dùng (khuyến nghị `asia-southeast1` nếu project mới và còn lựa chọn phù hợp).
 
-## 3. Tạo Telegram Bot
+## 3. Cấu hình liên kết Telegram Bot
 
 1. Mở Telegram, tìm `@BotFather`.
 2. Gửi `/newbot`, làm theo hướng dẫn.
-3. Lưu Bot Token ở nơi an toàn. Không đưa token vào frontend hoặc Git.
-4. Chọn username bot (không có @), ví dụ `my_task_reminder_bot`.
-5. Thay `YOUR_TELEGRAM_BOT_USERNAME` trong:
-   - `js/config.js`
-   - `functions/src/index.ts` (hằng `BOT_USERNAME`).
+3. Điền username bot (không có `@`) vào `TELEGRAM_BOT_USERNAME` trong `js/config.js`. Username hiện được cấu hình là `auto_taskmanager_bot`.
+4. Không cần bot token hoặc chat ID để mở liên kết. Không đưa bot token vào frontend.
 
-## 4. Cài đặt và deploy backend
+## 4. Deploy lên Vercel
 
-Tại thư mục dự án:
+1. Đẩy repository lên GitHub rồi import repository vào Vercel.
+2. Giữ Root Directory là thư mục gốc của repository; chọn framework preset **Other** nếu Vercel yêu cầu.
+3. Thêm các environment variables trong Vercel → Project → Settings → Environment Variables, chọn môi trường **Production**:
 
-```bash
-npm install -g firebase-tools
-firebase login
-firebase use --add
-```
+   - `TELEGRAM_BOT_TOKEN`: token mới của bot.
+   - `TELEGRAM_CHAT_ID`: chat ID cần nhận nhắc việc; mở bot và nhấn **Start** trước.
+   - `CRON_SECRET`: chuỗi ngẫu nhiên tối thiểu 16 ký tự chữ/số để bảo vệ API Cron.
+   - `FIREBASE_SERVICE_ACCOUNT`: JSON của service account có quyền đọc hồ sơ Firestore và đọc/ghi công việc trong Realtime Database.
+   - `FIREBASE_DATABASE_URL`: tùy chọn; mặc định dùng URL Realtime Database của project này.
 
-Chọn đúng Firebase project. Sau đó:
+Không commit service account JSON, bot token hoặc `CRON_SECRET` vào repository. `telegram-config.txt` chỉ là file local đã được Git ignore; Vercel không đọc file local này, nên secrets phải được nhập vào Vercel Environment Variables.
 
-```bash
-cd functions
-npm install
-cd ..
-```
+4. Trong Firebase Console, publish rules từ `database.rules.json` vào Realtime Database → Rules để áp dụng index `dueAt`. Có thể publish `firestore.rules` vào Firestore → Rules nếu project chưa có rules tương ứng.
+5. Deploy production từ Vercel. Cron chỉ chạy trên production deployment, không chạy trên preview.
 
-Chuyển Firebase project sang gói Blaze nếu Firebase yêu cầu để bật Functions/Scheduler. Thiết lập secrets:
+Mở URL production của Vercel và đăng ký/đăng nhập bằng email, mật khẩu.
 
-```bash
-firebase functions:secrets:set TELEGRAM_BOT_TOKEN
-firebase functions:secrets:set TELEGRAM_WEBHOOK_SECRET
-```
-
-- `TELEGRAM_BOT_TOKEN`: token lấy từ BotFather.
-- `TELEGRAM_WEBHOOK_SECRET`: chuỗi bí mật tự tạo dài, ví dụ một chuỗi ngẫu nhiên 32+ ký tự. Không dùng ví dụ công khai.
-
-Deploy rules, indexes, hosting và functions:
-
-```bash
-firebase deploy
-```
-
-Sau deploy, lấy URL của function `telegramWebhook` trong Firebase Console → Functions. URL có dạng:
-
-`https://asia-southeast1-YOUR_PROJECT_ID.cloudfunctions.net/telegramWebhook`
-
-## 5. Cấu hình Telegram webhook
-
-Thay các giá trị rồi chạy lệnh sau trong PowerShell (không commit token/secret vào source):
-
-```powershell
-$BOT_TOKEN = "TOKEN_CUA_BOT"
-$WEBHOOK_SECRET = "CHUOI_BI_MAT_CUA_BAN"
-$WEBHOOK_URL = "URL_FUNCTION_telegramWebhook"
-
-Invoke-RestMethod -Method Post `
-  -Uri "https://api.telegram.org/bot$BOT_TOKEN/setWebhook" `
-  -ContentType "application/json" `
-  -Body (@{
-    url = $WEBHOOK_URL
-    secret_token = $WEBHOOK_SECRET
-    allowed_updates = @("message")
-  } | ConvertTo-Json)
-```
-
-Kết quả mong đợi có `"ok": true`. Secret gửi vào header của Telegram phải trùng chính xác secret đã lưu trong Firebase Secret Manager.
-
-## 6. Deploy Hosting
-
-Nếu chưa deploy Hosting ở bước trên:
-
-```bash
-firebase deploy --only hosting
-```
-
-Mở URL Hosting được Firebase cung cấp. Đăng ký tài khoản bằng email/mật khẩu.
-
-## 7. Liên kết Telegram
+## 5. Mở Telegram Bot
 
 1. Đăng nhập vào Task Manager.
-2. Chọn **Liên kết Telegram** ở Dashboard.
-3. Nhấn **Mở Telegram Bot**.
-4. Nhấn **Start** trong Telegram.
-5. Bot phản hồi liên kết thành công.
-6. Quay lại ứng dụng. Trạng thái Telegram sẽ chuyển thành đã liên kết.
+2. Ở Dashboard, nhấn **Mở Telegram Bot**.
+3. Trong Telegram, nhấn **Start** để bắt đầu trò chuyện.
 
-Mã liên kết có hiệu lực 10 phút và chỉ sử dụng một lần.
+Đây là liên kết Telegram trực tiếp, không liên kết Telegram với tài khoản Task Manager và ứng dụng không theo dõi trạng thái Start.
 
-## 8. Tạo nhắc việc
+## 6. Quản lý công việc
 
-1. Nhấn **Tạo công việc**.
-2. Nhập tên, mô tả, danh mục, ưu tiên.
-3. Chọn ngày và giờ đến hạn.
-4. Tích **Nhắc tôi qua Telegram vào thời điểm đến hạn**.
-5. Lưu công việc.
+- Có thể nhân bản công việc; bản sao bắt đầu ở trạng thái chưa hoàn thành.
+- Xóa sẽ chuyển công việc vào Thùng rác. Có thể khôi phục hoặc xóa vĩnh viễn tại đó.
+- Checklist là các bước trong một công việc; công việc con có trạng thái riêng.
+- Tiến độ được tính từ các bước checklist và công việc con đã hoàn thành. Nếu không có mục con, tiến độ là 0% hoặc 100% theo trạng thái công việc.
+- Có thể đặt ngày bắt đầu và ngày đến hạn, ghim công việc yêu thích, tìm và lọc công việc.
+- Tệp đính kèm hiện được hoãn, chưa có trong phiên bản này.
+- Công việc mới được lưu vào Realtime Database tại `users/{uid}/tasks`.
+- Ở lần đăng nhập đầu tiên, ứng dụng sao chép task cũ từ Firestore sang Realtime Database; task đã có ở RTDB sẽ không bị ghi đè.
 
-Cloud Scheduler kiểm tra mỗi phút và gửi tin nhắn Telegram khi tới thời điểm nhắc.
+## 7. Nhắc việc tự động
 
-## 9. Cấu trúc thư mục
+- Khi ứng dụng đang mở, trình duyệt phát âm báo và hiện toast khi công việc đến hạn. Trình duyệt phải cho phép âm thanh; trình duyệt có thể hạn chế âm thanh khi tab đóng hoặc thiết bị ngủ.
+- Trên Vercel Hobby, Cron gọi API `/api/telegram-reminders` mỗi ngày theo lịch 00:00 UTC (khoảng 07:00 giờ Việt Nam, có thể lệch tới gần một giờ). API đọc các công việc đến hạn/quá hạn từ Realtime Database và gửi một lần tới `TELEGRAM_CHAT_ID`; việc nhắc có thể trễ tới lần quét tiếp theo. Chạy mỗi phút cần Vercel Pro/Enterprise.
+- Công việc hoàn thành hoặc đã xóa không được gửi. Khi đổi hạn, công việc có thể được nhắc lại theo hạn mới.
+- Bot chỉ nhắn được sau khi người nhận mở bot và nhấn **Start**. Token bot đã từng bị chia sẻ; hãy thu hồi token cũ qua `@BotFather` và chỉ nhập token mới vào Vercel Environment Variables.
+- Cron API kiểm tra `Authorization: Bearer <CRON_SECRET>`; không xóa bước kiểm tra này hoặc để endpoint công khai không có secret.
+
+## 8. Cấu trúc thư mục
 
 ```text
 task-manager-firebase-telegram/
 ├── index.html
+├── api/
+│   └── telegram-reminders.js
 ├── css/
 │   └── style.css
 ├── js/
 │   ├── app.js
 │   ├── config.js
 │   ├── firebase.js
-│   ├── functions-client.js
 │   ├── tasks.js
 │   ├── telegram.js
 │   └── ui.js
-├── functions/
-│   ├── src/index.ts
-│   ├── package.json
-│   └── tsconfig.json
+├── package.json
+├── vercel.json
 ├── firestore.rules
+├── database.rules.json
 ├── firestore.indexes.json
 ├── firebase.json
 └── README.md
 ```
 
-## 10. Lưu ý kỹ thuật quan trọng
+## 9. Lưu ý kỹ thuật quan trọng
 
-- **Không nhúng Telegram Bot Token trong frontend.** Token chỉ được lưu trong Firebase Secret Manager.
-- Firestore Rules chặn client đọc/ghi `users/{uid}/private/**` và `telegramLinkCodes`; Cloud Functions dùng Admin SDK để thao tác backend.
-- Scheduler đang gửi nhắc **một lần cho mỗi lần đặt reminder**. Đây là phiên bản nhắc một lần, chưa có nhắc lặp.
-- Nếu thay đổi ngày/giờ nhắc khi sửa công việc, app đặt lại `reminderSentAt` để lần nhắc mới được xử lý.
-- Nếu công việc đến hạn khi chưa liên kết Telegram, hệ thống đánh dấu skipped để không gửi lặp. Hãy liên kết Telegram trước khi tạo nhắc.
-- Không chia sẻ Bot Token, Firebase service account key hoặc webhook secret.
-- Đặt quy tắc chi phí/budget alert trong Google Cloud Billing. Cloud Scheduler và Functions có thể phát sinh chi phí.
+- Firebase Authentication và Firestore vẫn được dùng cho đăng nhập/hồ sơ; dữ liệu công việc nằm trong Realtime Database.
+- `database.rules.json` chỉ cho phép người dùng đã đăng nhập đọc/ghi nhánh `users/{uid}` của chính họ; các task được đánh index theo `dueAt` cho Vercel Cron.
+- Không nhúng Telegram Bot Token vào frontend. Liên kết bot chỉ cần username công khai.
 - Frontend hiện dùng Firebase Web SDK qua CDN; khi đưa vào môi trường production nên kiểm tra cấu hình domain được phép trong Firebase Authentication.
+- Firebase service account chỉ dùng phía server tại Vercel; không đưa private key vào `js/` hoặc HTML.
 
-## 11. Chạy thử local
+## 10. Chạy thử local
 
-Có thể dùng Firebase Hosting emulator:
+Có thể chạy frontend local bằng static server. Vercel Cron không chạy trong preview/local; có thể gọi API local thủ công với `CRON_SECRET` để kiểm thử sau khi cấu hình đủ environment variables.
 
 ```bash
-firebase emulators:start --only hosting,auth,firestore
+npm install
 ```
 
-Lưu ý: phần gửi Telegram và Scheduler cần backend đã deploy để kiểm thử end-to-end; không nên coi emulator Hosting đơn lẻ là đã kiểm thử webhook.
+Realtime Database và Authentication vẫn là dịch vụ Firebase thật, trừ khi chủ động cấu hình Firebase Emulator.
 
-## 12. Hướng phát triển tiếp theo
+## 11. Hướng phát triển tiếp theo
 
 - Nhắc trước hạn 5/15/30 phút.
 - Nhắc lặp hàng ngày, hàng tuần, hàng tháng.
