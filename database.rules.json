@@ -7,8 +7,45 @@
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid",
         "tasks": {
-          ".indexOn": ["dueAt"]
+          ".indexOn": ["dueAt"],
+          "$taskId": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('taskMembers').child($taskId).child('members').child(auth.uid).exists())"
+          }
+        },
+        "activities": {
+          ".indexOn": ["createdAt"]
+        },
+        "notificationLogs": {
+          ".indexOn": ["createdAt"]
         }
+      }
+    },
+    "telegramLinkCodes": {
+      ".indexOn": ["expiresAt"]
+    },
+    "taskMembers": {
+      "$taskId": {
+        ".read": "auth != null && (data.child('ownerUid').val() === auth.uid || data.child('members').child(auth.uid).exists())",
+        ".write": false
+      }
+    },
+    "taskMemberships": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+    "taskComments": {
+      "$taskId": {
+        ".read": "auth != null && (root.child('taskMembers').child($taskId).child('ownerUid').val() === auth.uid || root.child('taskMembers').child($taskId).child('members').child(auth.uid).exists())",
+        ".write": false,
+        ".indexOn": ["createdAt"]
+      }
+    },
+    "taskProgress": {
+      "$taskId": {
+        ".read": "auth != null && (root.child('taskMembers').child($taskId).child('ownerUid').val() === auth.uid || root.child('taskMembers').child($taskId).child('members').child(auth.uid).exists())",
+        ".write": false
       }
     }
   }

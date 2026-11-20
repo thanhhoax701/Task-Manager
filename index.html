@@ -22,6 +22,8 @@
         <label>Mật khẩu<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="Ít nhất 6 ký tự"></label>
         <button class="btn primary full" id="authSubmit" type="submit">Đăng nhập</button>
       </form>
+      <button class="btn secondary full google-signin-button" id="googleSignInBtn" type="button">Tiếp tục với Google</button>
+      <p class="tiny muted">Hoặc đăng nhập bằng email và mật khẩu ở trên.</p>
       <button class="text-button" id="toggleAuth" type="button">Chưa có tài khoản? Đăng ký</button>
       <p id="authMessage" class="form-message" aria-live="polite"></p>
     </div>
@@ -34,10 +36,12 @@
       <nav class="main-nav">
         <button class="nav-item active" data-view="dashboard"><span>▦</span> Tổng quan</button>
         <button class="nav-item" data-view="tasks"><span>☷</span> Tất cả công việc</button>
+        <button class="nav-item" data-view="calendar"><span>▦</span> Lịch & kế hoạch</button>
         <button class="nav-item" data-view="today"><span>◷</span> Hôm nay</button>
         <button class="nav-item" data-view="upcoming"><span>▣</span> Sắp tới</button>
         <button class="nav-item" data-view="favorites"><span>★</span> Yêu thích</button>
         <button class="nav-item" data-view="trash"><span>⌫</span> Thùng rác</button>
+        <button class="nav-item" data-view="settings"><span>⚙</span> Cài đặt</button>
       </nav>
       <div class="side-label category-heading">DANH MỤC</div>
       <div id="categoryList" class="category-list"></div>
@@ -58,18 +62,164 @@
         <div class="stats-grid">
           <article class="stat-card"><div class="stat-icon blue">☷</div><span>Tổng công việc</span><strong id="statTotal">0</strong><small>Trong danh sách của bạn</small></article>
           <article class="stat-card"><div class="stat-icon green">✓</div><span>Đã hoàn thành</span><strong id="statDone">0</strong><small>Công việc hoàn tất</small></article>
-          <article class="stat-card"><div class="stat-icon orange">◷</div><span>Đến hạn hôm nay</span><strong id="statToday">0</strong><small>Cần xử lý trong hôm nay</small></article>
+          <article class="stat-card"><div class="stat-icon orange">◷</div><span>Đang thực hiện</span><strong id="statInProgress">0</strong><small>Có checklist hoặc đầu việc đã xong</small></article>
           <article class="stat-card"><div class="stat-icon red">!</div><span>Quá hạn</span><strong id="statOverdue">0</strong><small>Cần được chú ý</small></article>
+          <article class="stat-card"><div class="stat-icon orange">◷</div><span>Đến hạn hôm nay</span><strong id="statToday">0</strong><small>Cần xử lý trong hôm nay</small></article>
         </div>
+        <div class="dashboard-analytics-grid">
+          <section class="panel">
+            <div class="panel-heading dashboard-chart-heading">
+              <div><h3>Tiến độ tuần / tháng</h3><p class="muted">Công việc tạo mới và hoàn thành theo thời gian</p></div>
+              <div class="chart-mode-tabs" role="group" aria-label="Khoảng thời gian biểu đồ">
+                <button id="chartWeekBtn" class="chart-mode active" type="button">Tuần</button>
+                <button id="chartMonthBtn" class="chart-mode" type="button">Tháng</button>
+              </div>
+            </div>
+            <div class="chart-legend"><span><i class="legend-created"></i>Mới</span><span><i class="legend-completed"></i>Hoàn thành</span></div>
+            <div id="progressChart" class="progress-chart" role="img" aria-label="Biểu đồ công việc tạo mới và hoàn thành"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading"><div><h3>Theo danh mục</h3><p class="muted">Tổng số và tỷ lệ hoàn thành</p></div></div>
+            <div id="categoryStats" class="category-stats" aria-live="polite"></div>
+          </section>
+        </div>
+        <section id="dateRangeReport" class="panel report-panel">
+          <div class="panel-heading report-heading">
+            <div><h3>Báo cáo theo khoảng thời gian</h3><p class="muted">Tính theo ngày tạo, ngày đến hạn và ngày hoàn thành</p></div>
+            <div class="report-actions">
+              <button id="exportExcelBtn" class="btn secondary" type="button">Xuất Excel XML</button>
+              <button id="exportPdfBtn" class="btn secondary" type="button">Xuất PDF</button>
+            </div>
+          </div>
+          <form id="reportFilterForm" class="report-controls">
+            <label>Từ ngày<input id="reportStartDate" type="date" required></label>
+            <label>Đến ngày<input id="reportEndDate" type="date" required></label>
+            <button class="btn primary" type="submit">Áp dụng</button>
+          </form>
+          <p id="reportPeriodLabel" class="report-period-label" aria-live="polite"></p>
+          <div id="reportSummary" class="report-summary" aria-live="polite"></div>
+          <div id="reportTable" class="report-table-wrap"></div>
+          <p class="tiny muted report-export-note">Excel XML mở được bằng Microsoft Excel. Xuất PDF sẽ mở hộp thoại in; chọn “Lưu thành PDF”.</p>
+        </section>
         <div class="content-grid">
           <section class="panel"><div class="panel-heading"><div><h3>Công việc gần đây</h3><p class="muted">Những việc cần bạn quan tâm</p></div><button class="text-button" data-goto="tasks">Xem tất cả →</button></div><div id="dashboardTasks" class="task-list"></div></section>
-          <section class="panel telegram-panel"><div class="telegram-logo">➤</div><h3>Telegram Bot</h3><p class="muted">Mở bot Telegram và nhấn Start để bắt đầu trò chuyện.</p><a id="linkTelegramBtn" class="btn telegram-btn full" target="_blank" rel="noopener noreferrer">Mở Telegram Bot ↗</a><p class="tiny muted">Đây là liên kết trực tiếp đến bot; ứng dụng không theo dõi trạng thái Telegram.</p></section>
+          <section class="panel telegram-panel"><div class="telegram-logo">➤</div><h3>Telegram Bot</h3><p class="muted">Mở bot Telegram và nhấn Start để bắt đầu trò chuyện.</p><a id="linkTelegramBtn" class="btn telegram-btn full" target="_blank" rel="noopener noreferrer">Mở Telegram Bot ↗</a><p class="tiny muted">Để nhận nhắc việc cá nhân, hãy liên kết tài khoản trong Cài đặt.</p></section>
         </div>
       </section>
 
       <section id="tasksView" class="view hidden">
-        <div class="toolbar"><div class="filter-tabs"><button class="filter-tab active" data-filter="all">Tất cả</button><button class="filter-tab" data-filter="pending">Chưa làm</button><button class="filter-tab" data-filter="completed">Hoàn thành</button></div><input id="taskSearch" class="search-input" type="search" placeholder="⌕  Tìm công việc..."></div>
+        <div class="toolbar"><div class="filter-tabs"><button class="filter-tab active" data-filter="all">Tất cả</button><button class="filter-tab" data-filter="pending">Chưa làm</button><button class="filter-tab" data-filter="completed">Hoàn thành</button></div><select id="groupFilter" class="group-filter" aria-label="Lọc theo nhóm"><option value="">Tất cả nhóm</option></select><button id="manageGroupsBtn" class="btn secondary" type="button">Quản lý nhóm</button><input id="taskSearch" class="search-input" type="search" placeholder="⌕  Tìm công việc..."></div>
         <div class="panel"><div id="allTasks" class="task-list"></div></div>
+      </section>
+
+      <section id="calendarView" class="view hidden">
+        <div class="calendar-toolbar panel">
+          <div class="calendar-date-controls">
+            <button id="calendarPrev" class="icon-button" type="button" aria-label="Khoảng thời gian trước">‹</button>
+            <button id="calendarToday" class="btn secondary" type="button">Hôm nay</button>
+            <button id="calendarNext" class="icon-button" type="button" aria-label="Khoảng thời gian sau">›</button>
+            <h3 id="calendarRange"></h3>
+          </div>
+          <div class="calendar-tools">
+            <div class="calendar-mode-tabs" role="group" aria-label="Chế độ lịch">
+              <button class="calendar-mode active" data-calendar-mode="week" type="button">Tuần</button>
+              <button class="calendar-mode" data-calendar-mode="day" type="button">Ngày</button>
+              <button class="calendar-mode" data-calendar-mode="month" type="button">Tháng</button>
+            </div>
+            <select id="calendarStatusFilter" aria-label="Lọc trạng thái">
+              <option value="all">Mọi trạng thái</option>
+              <option value="pending">Chưa hoàn thành</option>
+              <option value="completed">Đã hoàn thành</option>
+            </select>
+            <select id="calendarPriorityFilter" aria-label="Lọc độ ưu tiên">
+              <option value="all">Mọi ưu tiên</option>
+              <option value="high">Ưu tiên cao</option>
+              <option value="medium">Ưu tiên trung bình</option>
+              <option value="low">Ưu tiên thấp</option>
+            </select>
+          </div>
+        </div>
+        <p id="calendarSummary" class="calendar-summary" aria-live="polite"></p>
+        <section class="panel unscheduled-panel">
+          <div class="panel-heading"><div><h3>Chưa xếp lịch</h3><p class="muted">Kéo công việc vào một ngày để đặt hạn theo giờ kết thúc làm việc.</p></div><strong id="calendarUnscheduledCount" class="overdue-count">0</strong></div>
+          <div id="calendarUnscheduledTasks" class="calendar-unscheduled-list"></div>
+        </section>
+        <div class="calendar-grid-scroll"><div id="calendarGrid" class="calendar-grid calendar-week"></div></div>
+        <section class="panel overdue-panel">
+          <div class="panel-heading"><div><h3>Công việc quá hạn</h3><p class="muted">Chưa hoàn thành và đã qua ngày đến hạn</p></div><strong id="calendarOverdueCount" class="overdue-count">0</strong></div>
+          <div id="calendarOverdueTasks" class="calendar-overdue-list"></div>
+        </section>
+      </section>
+
+      <section id="settingsView" class="view hidden">
+        <div class="content-grid settings-grid">
+          <section class="panel profile-panel">
+            <div class="panel-heading"><div><h3>Hồ sơ cá nhân</h3><p class="muted">Thông tin tài khoản và quyền truy cập.</p></div></div>
+            <form id="profileForm" class="settings-form">
+              <label>Tên hiển thị<input id="profileDisplayName" maxlength="80" required></label>
+              <label>Email<input id="profileEmail" type="email" readonly></label>
+              <p class="profile-role">Vai trò: <strong id="profileRole">User</strong></p>
+              <button class="btn primary" type="submit" id="saveProfileBtn">Lưu hồ sơ</button>
+            </form>
+          </section>
+          <section id="adminUsersPanel" class="panel admin-users-panel hidden">
+            <div class="panel-heading"><div><h3>Quản lý vai trò</h3><p class="muted">Tìm tài khoản theo email và cấp quyền Admin/User.</p></div></div>
+            <form id="adminUserSearchForm" class="admin-user-search">
+              <input id="adminUserEmail" type="email" required placeholder="email@example.com" aria-label="Email người dùng">
+              <button class="btn secondary" type="submit">Tìm người dùng</button>
+            </form>
+            <div id="adminUserResult" class="admin-user-result" aria-live="polite"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading"><div><h3>Tùy chỉnh hệ thống</h3><p class="muted">Cài đặt được lưu riêng cho tài khoản của bạn.</p></div></div>
+            <form id="settingsForm" class="settings-form">
+              <div class="form-grid">
+                <label>Giao diện<select id="settingTheme"><option value="light">Sáng</option><option value="dark">Tối</option></select></label>
+                <label>Màu nhấn<input id="settingAccentColor" type="color" value="#2563eb"></label>
+                <label>Bắt đầu làm việc<input id="settingWorkStart" type="time" required></label>
+                <label>Kết thúc làm việc<input id="settingWorkEnd" type="time" required></label>
+                <label>Nhắc trước mặc định<select id="settingReminderDefault"><option value="0">Khi đến hạn</option><option value="5">5 phút</option><option value="15">15 phút</option><option value="30">30 phút</option><option value="60">60 phút</option></select></label>
+              </div>
+              <fieldset class="settings-fieldset">
+                <legend>Ngày nghỉ hằng tuần</legend>
+                <div class="days-off-grid">
+                  <label><input type="checkbox" name="daysOff" value="1"> Thứ 2</label>
+                  <label><input type="checkbox" name="daysOff" value="2"> Thứ 3</label>
+                  <label><input type="checkbox" name="daysOff" value="3"> Thứ 4</label>
+                  <label><input type="checkbox" name="daysOff" value="4"> Thứ 5</label>
+                  <label><input type="checkbox" name="daysOff" value="5"> Thứ 6</label>
+                  <label><input type="checkbox" name="daysOff" value="6"> Thứ 7</label>
+                  <label><input type="checkbox" name="daysOff" value="0"> Chủ nhật</label>
+                </div>
+              </fieldset>
+              <div class="holiday-settings">
+                <label for="settingHolidayDate">Ngày nghỉ riêng</label>
+                <div class="holiday-add-row"><input id="settingHolidayDate" type="date"><button id="addHolidayBtn" class="btn secondary" type="button">Thêm ngày</button></div>
+                <div id="holidayList" class="holiday-list"></div>
+              </div>
+              <div class="modal-actions"><button type="submit" class="btn primary" id="saveSettingsBtn">Lưu cài đặt</button></div>
+            </form>
+            <button class="text-button settings-trash-link" type="button" data-goto="trash">Mở thùng rác và khôi phục công việc →</button>
+          </section>
+          <section class="panel activity-panel">
+            <div class="panel-heading"><div><h3>Nhật ký hoạt động</h3><p class="muted">100 hoạt động gần nhất</p></div></div>
+            <div id="activityList" class="activity-list"></div>
+          </section>
+          <section class="panel telegram-account-panel">
+            <div class="panel-heading"><div><h3>Liên kết Telegram</h3><p class="muted">Nhận nhắc việc riêng và cập nhật trạng thái từ bot.</p></div></div>
+            <p id="telegramLinkStatus" class="telegram-link-status" aria-live="polite">Chưa liên kết.</p>
+            <a id="telegramLinkAnchor" class="btn telegram-btn hidden" target="_blank" rel="noopener noreferrer"></a>
+            <div class="modal-actions">
+              <button id="createTelegramLinkBtn" class="btn secondary" type="button">Tạo liên kết</button>
+              <button id="unlinkTelegramBtn" class="btn secondary hidden" type="button">Ngắt liên kết</button>
+            </div>
+            <p class="tiny muted">Liên kết hết hạn sau 10 phút. Trong Telegram dùng /unlink để ngắt kết nối.</p>
+          </section>
+          <section class="panel notification-log-panel">
+            <div class="panel-heading"><div><h3>Lịch sử gửi thông báo</h3><p class="muted">100 lần gần nhất, gồm gửi thành công và thất bại.</p></div></div>
+            <div id="notificationLogList" class="notification-log-list"></div>
+          </section>
+        </div>
       </section>
 
       <section id="todayView" class="view hidden"><div class="panel"><div class="panel-heading"><div><h3>Việc cần làm hôm nay</h3><p class="muted">Tập trung xử lý các công việc đến hạn.</p></div></div><div id="todayTasks" class="task-list"></div></div></section>
@@ -85,12 +235,18 @@
       <input id="taskId" type="hidden">
       <label>Tên công việc<input id="taskTitle" required maxlength="120" placeholder="Ví dụ: Kiểm tra hệ thống máy chủ"></label>
       <label>Mô tả<textarea id="taskDescription" rows="3" placeholder="Ghi chú chi tiết (không bắt buộc)"></textarea></label>
+      <label>Ghi chú<textarea id="taskNotes" rows="3" placeholder="Ghi chú riêng cho công việc"></textarea></label>
       <div class="form-grid">
         <label>Danh mục<select id="taskCategory"><option value="Cá nhân">Cá nhân</option><option value="Công việc">Công việc</option><option value="IT">IT</option><option value="Gia đình">Gia đình</option><option value="Khác">Khác</option></select></label>
+        <label>Nhóm công việc<select id="taskGroup"><option value="">Không thuộc nhóm</option></select></label>
         <label>Độ ưu tiên<select id="taskPriority"><option value="medium">Trung bình</option><option value="high">Cao</option><option value="low">Thấp</option></select></label>
+        <label>Nhãn<input id="taskTags" maxlength="249" placeholder="Ví dụ: khẩn cấp, khách hàng"></label>
+        <label>Màu công việc<input id="taskColor" type="color" value="#ffffff"></label>
         <label>Ngày bắt đầu<input id="taskStartDate" type="date"></label>
         <label>Ngày đến hạn<input id="taskDueDate" type="date"></label>
         <label>Giờ đến hạn<input id="taskDueTime" type="time"></label>
+        <label>Nhắc trước hạn<select id="taskReminderLead"><option value="0">Khi đến hạn</option><option value="5">5 phút</option><option value="15">15 phút</option><option value="30">30 phút</option><option value="60">60 phút</option></select></label>
+        <label>Lặp lại<select id="taskRecurrence"><option value="none">Không lặp</option><option value="daily">Hằng ngày</option><option value="weekly">Hằng tuần</option><option value="monthly">Hằng tháng</option><option value="yearly">Hằng năm</option></select></label>
       </div>
       <section class="task-editor-section">
         <div class="editor-section-heading"><strong>Checklist</strong><button class="text-button" id="addChecklistItem" type="button">＋ Thêm bước</button></div>
@@ -100,9 +256,59 @@
         <div class="editor-section-heading"><strong>Công việc con</strong><button class="text-button" id="addSubtaskItem" type="button">＋ Thêm việc con</button></div>
         <div id="subtaskEditor" class="editor-list"></div>
       </section>
-      <p class="tiny muted">Công việc có ngày đến hạn sẽ phát âm thanh trong app và gửi thông báo Telegram khi tới hạn. Thời gian sử dụng múi giờ Asia/Ho_Chi_Minh.</p>
+      <section class="task-editor-section">
+        <div class="editor-section-heading"><strong>Tệp đính kèm và liên kết</strong><span class="tiny muted">Tối đa 10 mục, 10 MB mỗi tệp</span></div>
+        <label class="attachment-file-label">Ảnh hoặc tài liệu<input id="taskAttachmentFiles" type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp,.pdf,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></label>
+        <div class="attachment-link-row">
+          <input id="taskAttachmentUrl" type="url" placeholder="https://example.com">
+          <input id="taskAttachmentLinkName" type="text" maxlength="80" placeholder="Tên liên kết (tùy chọn)">
+          <button id="addTaskAttachmentLink" class="btn secondary" type="button">Thêm liên kết</button>
+        </div>
+        <div id="taskAttachmentList" class="attachment-list"></div>
+      </section>
+      <p class="tiny muted">Có thể nhắc trước 5, 15 hoặc 30 phút; thông báo đến hạn vẫn được gửi riêng. Âm thanh trong app chỉ hoạt động khi trang đang mở.</p>
       <div class="modal-actions"><button type="button" class="btn secondary" id="cancelTask">Hủy</button><button type="submit" class="btn primary" id="saveTaskBtn">Lưu công việc</button></div>
     </form>
+  </dialog>
+
+  <dialog id="groupsDialog" class="modal compact-modal">
+    <form id="groupForm" method="dialog">
+      <div class="modal-heading"><div><p class="eyebrow">TASK GROUPS</p><h3 id="groupDialogTitle">Quản lý nhóm</h3></div><button type="button" class="icon-button" id="closeGroupsDialog">×</button></div>
+      <input id="groupId" type="hidden">
+      <label>Tên nhóm<input id="groupName" required maxlength="40" placeholder="Ví dụ: Dự án cá nhân"></label>
+      <div class="modal-actions"><button type="button" class="btn secondary" id="cancelGroupEdit">Hủy</button><button type="submit" class="btn primary" id="saveGroupBtn">Thêm nhóm</button></div>
+    </form>
+    <div id="groupManagerList" class="group-manager-list"></div>
+  </dialog>
+
+  <dialog id="collaborationDialog" class="modal collaboration-dialog">
+    <div class="modal-heading">
+      <div><p class="eyebrow">TASK COLLABORATION</p><h3 id="collaborationTaskTitle">Cộng tác công việc</h3></div>
+      <button id="closeCollaborationDialog" type="button" class="icon-button" aria-label="Đóng">×</button>
+    </div>
+    <p id="collaborationAccessNote" class="tiny muted"></p>
+    <section id="collaborationManageSection" class="task-editor-section hidden">
+      <div class="editor-section-heading"><strong>Giao việc / thành viên</strong></div>
+      <form id="collaborationMemberForm" class="collaboration-inline-form">
+        <input id="collaborationMemberEmail" type="email" required placeholder="Email đã đăng ký">
+        <button class="btn secondary" type="submit">Giao việc</button>
+      </form>
+      <div id="collaborationMembers" class="collaboration-members"></div>
+    </section>
+    <section id="collaborationProgressSection" class="task-editor-section hidden">
+      <div class="editor-section-heading"><strong>Tiến độ của tôi</strong><span id="memberProgressValue">0%</span></div>
+      <input id="memberProgressRange" type="range" min="0" max="100" step="5" value="0">
+      <label>Ghi chú tiến độ<textarea id="memberProgressNote" rows="2" maxlength="250" placeholder="Cập nhật ngắn về phần việc của bạn"></textarea></label>
+      <button id="saveMemberProgressBtn" class="btn secondary" type="button">Cập nhật tiến độ</button>
+    </section>
+    <section class="task-editor-section">
+      <div class="editor-section-heading"><strong>Bình luận</strong></div>
+      <form id="collaborationCommentForm" class="collaboration-comment-form">
+        <textarea id="collaborationCommentText" rows="3" maxlength="2000" required placeholder="Trao đổi về công việc..."></textarea>
+        <button class="btn primary" type="submit">Gửi bình luận</button>
+      </form>
+      <div id="collaborationComments" class="collaboration-comments"></div>
+    </section>
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>

@@ -39,6 +39,7 @@ function renderTaskItem(item, type, task, handlers) {
   const check = document.createElement("input");
   check.type = "checkbox";
   check.checked = type === "checklist" ? !!item.completed : item.status === "completed";
+  check.disabled = Boolean(task.sharedReadOnly);
   check.addEventListener("change", () => {
     if (type === "checklist") handlers.toggleChecklist?.(task, item.id, check.checked);
     else handlers.toggleSubtask?.(task, item.id, check.checked);
@@ -53,6 +54,9 @@ function renderTaskItem(item, type, task, handlers) {
 export function renderTask(task, handlers = {}, { trash = false } = {}) {
   const row = document.createElement("div");
   row.className = "task-row" + (trash ? " task-row-trash" : "");
+  if (/^#[0-9a-f]{6}$/i.test(task.color || "")) {
+    row.style.setProperty("--task-color", task.color);
+  }
   const main = document.createElement("div");
   main.className = "task-main";
   const title = document.createElement("div");
@@ -64,6 +68,12 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
     desc.className = "task-description";
     desc.textContent = task.description;
     main.append(desc);
+  }
+  if (task.notes) {
+    const notes = document.createElement("div");
+    notes.className = "task-notes";
+    notes.textContent = task.notes;
+    main.append(notes);
   }
   const meta = document.createElement("div");
   meta.className = "task-meta";
@@ -77,6 +87,12 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
   due.className = "meta-chip";
   due.textContent = task.dueAt ? "Hạn: " + formatDate(task.dueAt) : "Không có hạn";
   meta.append(category, priority);
+  if (task.groupName) {
+    const group = document.createElement("span");
+    group.className = "meta-chip group-chip";
+    group.textContent = "▣ " + task.groupName;
+    meta.append(group);
+  }
   if (task.startAt) {
     const start = document.createElement("span");
     start.className = "meta-chip";
@@ -89,6 +105,28 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
     favorite.className = "meta-chip favorite-chip";
     favorite.textContent = "★ Yêu thích";
     meta.append(favorite);
+  }
+  const recurrenceLabels={daily:"Lặp hằng ngày",weekly:"Lặp hằng tuần",monthly:"Lặp hằng tháng",yearly:"Lặp hằng năm"};
+  if(recurrenceLabels[task.recurrence]){
+    const recurrence=document.createElement("span");
+    recurrence.className="meta-chip";
+    recurrence.textContent="↻ "+recurrenceLabels[task.recurrence];
+    meta.append(recurrence);
+  }
+  (task.tags || []).forEach(tag => {
+    const name = tag.name || tag.title;
+    if (!name) return;
+    const chip = document.createElement("span");
+    chip.className = "meta-chip tag-chip";
+    chip.textContent = name;
+    meta.append(chip);
+  });
+  if (/^#[0-9a-f]{6}$/i.test(task.color || "")) {
+    const color = document.createElement("span");
+    color.className = "meta-chip task-color-chip";
+    color.textContent = "Màu";
+    color.style.setProperty("--task-color", task.color);
+    meta.append(color);
   }
   if (trash && task.deletedAt) {
     const deleted = document.createElement("span");
@@ -104,12 +142,44 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
   }
   main.append(meta);
 
+  const attachments = (task.attachments || []).filter(attachment => {
+    if (!attachment.url) return false;
+    try {
+      const url = new URL(attachment.url);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  });
+  if (attachments.length) {
+    const attachmentList = document.createElement("div");
+    attachmentList.className = "task-attachments";
+    attachments.forEach(attachment => {
+      const link = document.createElement("a");
+      link.href = attachment.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = (attachment.kind === "link" ? "↗ " : "📎 ") + (attachment.name || "Tệp đính kèm");
+      if (["image/jpeg", "image/png", "image/gif", "image/webp"].includes(attachment.contentType)) {
+        const preview = document.createElement("img");
+        preview.src = attachment.url;
+        preview.alt = attachment.name || "Ảnh đính kèm";
+        preview.loading = "lazy";
+        link.append(preview);
+      }
+      attachmentList.append(link);
+    });
+    main.append(attachmentList);
+  }
+
   const checklist = task.checklist || [];
   const subtasks = task.subtasks || [];
   const totalItems = checklist.length + subtasks.length;
   const completedItems = checklist.filter(item => item.completed).length +
     subtasks.filter(item => item.status === "completed").length;
-  const progress = totalItems
+  const progress = task.sharedReadOnly
+    ? Number(task.memberProgressPercent) || 0
+    : totalItems
     ? Math.round(completedItems / totalItems * 100)
     : (task.status === "completed" ? 100 : 0);
   const progressRow = document.createElement("div");
@@ -120,7 +190,7 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
   progressBar.value = progress;
   progressBar.setAttribute("aria-label", `Tiến độ ${progress}%`);
   const progressLabel = document.createElement("span");
-  progressLabel.textContent = `${progress}%`;
+  progressLabel.textContent = task.sharedReadOnly ? `Tiến độ của bạn: ${progress}%` : `${progress}%`;
   progressRow.append(progressBar, progressLabel);
   main.append(progressRow);
 
@@ -157,17 +227,23 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
     check.type = "checkbox";
     check.className = "task-check";
     check.checked = task.status === "completed";
+    check.disabled = Boolean(task.sharedReadOnly);
     check.title = "Đánh dấu hoàn thành";
     check.setAttribute("aria-label", "Đánh dấu hoàn thành");
     check.addEventListener("change", () => handlers.toggle?.(task, check.checked));
-    actions.append(
+    if (task.sharedReadOnly) {
+      actions.append(makeAction("☷", "Cập nhật tiến độ và bình luận", () => handlers.collaborate?.(task)));
+    } else {
+      actions.append(
       makeAction(task.favorite ? "★" : "☆", task.favorite ? "Bỏ yêu thích" : "Đánh dấu yêu thích",
         () => handlers.favorite?.(task)),
       makeAction("⧉", "Nhân bản", () => handlers.duplicate?.(task)),
       makeAction("✎", "Sửa", () => handlers.edit?.(task)),
+      makeAction("☷", "Giao việc và bình luận", () => handlers.collaborate?.(task)),
       makeAction("×", "Chuyển vào thùng rác", () => handlers.remove?.(task))
-    );
-    row.append(check);
+      );
+      row.append(check);
+    }
   }
   row.append(main, actions);
   return row;

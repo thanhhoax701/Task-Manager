@@ -1,0 +1,31 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/tasks/{taskId}/attachments/{fileName} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+
+      function isAllowedFile() {
+        return request.resource.size <= 10 * 1024 * 1024
+          && (
+            request.resource.contentType.matches('image/(jpeg|png|gif|webp)')
+            || request.resource.contentType in [
+              'application/pdf',
+              'text/plain',
+              'application/msword',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'application/vnd.ms-excel',
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'application/vnd.ms-powerpoint',
+              'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+            ]
+          );
+      }
+
+      allow read: if isOwner();
+      allow create, update: if isOwner() && isAllowedFile();
+      allow delete: if isOwner();
+    }
+  }
+}
