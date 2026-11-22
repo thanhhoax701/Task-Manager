@@ -36,6 +36,7 @@ let telegramPendingUrl = "";
 let settingsHolidayDraft = [];
 let authMode = "login", activeView = "dashboard", activeFilter = "all", activeCategory = null, activeGroup = null;
 let dueNotificationTimer = null, dueNotificationUid = null, notificationAudio = null;
+let roleBootstrapAttemptUid = null;
 let calendarMode = "week", calendarDate = new Date(), calendarDraggingTaskId = null, calendarDragSourceDate = null;
 let progressChartMode="week", currentReport=null;
 const notifiedDueTasks = new Set();
@@ -779,6 +780,7 @@ onAuthStateChanged(auth, user => {
   telegramAccount = { chatId:null, pendingExpiresAt:null };
   telegramPendingUrl = "";
   settingsFormUserUid = null;
+  roleBootstrapAttemptUid = null;
   userRole = "user";
   renderUserRole();
   renderNotificationLog();
@@ -812,27 +814,34 @@ function friendlyError(err) {
   return map[err.code] || err.message || "Có lỗi xảy ra.";
 }
 
-async function updateUserRole(user) {
-  let resolvedRole = "user";
+async function loadUserRole(user) {
+  try {
+    const token = await user.getIdTokenResult();
+    if (currentUser?.uid !== user.uid) return false;
+    userRole = token.claims.role === "admin" ? "admin" : "user";
+  } catch (error) {
+    if (currentUser?.uid === user.uid) {
+      showToast("Không đọc được quyền tài khoản: " + error.message);
+    }
+    return false;
+  }
+  renderUserRole();
+  renderAll();
+  return true;
+}
+
+async function bootstrapAdminRole(user) {
+  if (roleBootstrapAttemptUid === user.uid) return;
+  roleBootstrapAttemptUid = user.uid;
   try {
     const bootstrap = await callAuthenticatedApi("/api/bootstrap-admin", {});
     if (bootstrap.claimsUpdated) await user.getIdToken(true);
-    const token = await user.getIdTokenResult();
-    resolvedRole = token.claims.role === "admin" ? "admin" : "user";
+    await loadUserRole(user);
   } catch (error) {
-    try {
-      resolvedRole = (await user.getIdTokenResult()).claims.role === "admin" ? "admin" : "user";
-    } catch (tokenError) {
-      console.error("Could not read the user's role claim:", tokenError);
-    }
     if (currentUser?.uid === user.uid) {
-      showToast("Không kiểm tra được quyền tài khoản: " + error.message);
+      showToast("Không kiểm tra được quyền Admin: " + error.message);
     }
   }
-  if (currentUser?.uid !== user.uid) return;
-  userRole = resolvedRole;
-  renderUserRole();
-  renderAll();
 }
 
 async function loadUserProfile(user) {
@@ -868,7 +877,7 @@ async function loadUserProfile(user) {
 function initializeUserSession(user) {
   if (currentUser?.uid !== user.uid) return;
   renderProfileForm(user);
-  void updateUserRole(user);
+  void loadUserRole(user);
   void loadUserProfile(user);
   void ensureTasksMigrated(user.uid).then(migration => {
     if (currentUser?.uid === user.uid && migration.copied) {
@@ -1443,6 +1452,14 @@ function goView(view, preserveCategory = false) {
   views.forEach(v=>$(`${v}View`).classList.toggle("hidden",v!==view));
   $("pageTitle").textContent=titles[view]||"Công việc";
   document.querySelectorAll(".nav-item[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
+  if(view==="settings"&&currentUser){
+    const user=currentUser;
+    void loadUserRole(user).then(loaded=>{
+      if(loaded&&currentUser?.uid===user.uid&&userRole!=="admin"){
+        void bootstrapAdminRole(user);
+      }
+    });
+  }
 }
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>goView(b.dataset.view)));
 document.querySelector("#addChecklistItem").addEventListener("click",()=>addEditorItem($("checklistEditor"),"checklist"));
