@@ -326,6 +326,10 @@ html[data-theme="dark"] .main-nav::-webkit-scrollbar-track{background:#263247}
   .user-chip{padding:8px 7px}
   .sidebar>.sidebar-bottom .logout{padding-top:7px;padding-bottom:7px}
 }
+.task-completion-control{display:flex;align-items:center;gap:6px;width:auto;min-height:32px;margin:0;padding:0 5px;color:var(--muted);font-size:10px;font-weight:600;white-space:nowrap;cursor:pointer}
+.task-completion-control input{width:17px;height:17px;flex:0 0 auto;margin:0;padding:0;accent-color:var(--blue)}
+.task-completion-control input:checked+span{color:#20a56a}
+@media(max-width:700px){.task-completion-control{min-height:44px}}
 @media(max-height:520px){
   .auth-screen{padding:8px}
   .auth-card{padding:16px}

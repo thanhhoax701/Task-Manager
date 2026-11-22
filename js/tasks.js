@@ -226,7 +226,7 @@ export async function saveSettings(uid, settings) {
 }
 
 export function subscribeActivities(uid, callback, onError) {
-  const recentActivities = query(activitiesRef(uid), orderByChild("createdAt"), limitToLast(100));
+  const recentActivities = query(activitiesRef(uid), limitToLast(100));
   return onValue(recentActivities, snapshot => {
     const stored = snapshot.val() || {};
     const activities = Object.entries(stored)
@@ -258,7 +258,7 @@ export async function addActivity(uid, message) {
     createdAt: serverTimestamp()
   });
 
-  const recentActivities = query(activitiesRef(uid), orderByChild("createdAt"), limitToLast(101));
+  const recentActivities = query(activitiesRef(uid), limitToLast(101));
   const snapshot = await getRealtimeValue(recentActivities);
   const oldest = Object.entries(snapshot.val() || {})
     .map(([id, activity]) => ({ id, createdAt: Number(activity.createdAt || 0) }))

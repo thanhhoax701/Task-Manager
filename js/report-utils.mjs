@@ -11,6 +11,12 @@ export function taskProgress(task) {
   return Math.round(completed / total * 100);
 }
 
+export function isTaskOverdue(task, now = new Date()) {
+  const due = asDate(task.dueAt);
+  return Boolean(!task.deletedAt && task.status !== "completed" &&
+    due && due.getTime() < now.getTime());
+}
+
 export function getDashboardMetrics(tasks, now = new Date()) {
   const active = tasks.filter(task => !task.deletedAt);
   const today = startOfDay(now);
@@ -23,12 +29,9 @@ export function getDashboardMetrics(tasks, now = new Date()) {
   );
   const dueToday = active.filter(task => {
     const due = asDate(task.dueAt);
-    return task.status !== "completed" && due && due >= today && due < tomorrow;
+    return task.status !== "completed" && due && due >= now && due < tomorrow;
   });
-  const overdue = active.filter(task => {
-    const due = asDate(task.dueAt);
-    return task.status !== "completed" && due && due < now;
-  });
+  const overdue = active.filter(task => isTaskOverdue(task, now));
   return {
     total: active.length,
     completed: completed.length,

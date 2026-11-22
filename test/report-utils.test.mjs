@@ -20,6 +20,17 @@ test("dashboard metrics classify partially completed tasks as in progress", () =
   assert.equal(taskProgress({ status: "pending", checklist: [{ completed: true }, { completed: false }] }), 50);
 });
 
+test("dashboard deadlines use the exact current time", () => {
+  const now = new Date(2026, 10, 20, 12);
+  const metrics = getDashboardMetrics([
+    { status: "pending", dueAt: new Date(2026, 10, 20, 11, 59) },
+    { status: "pending", dueAt: new Date(2026, 10, 20, 12, 1) },
+    { status: "completed", dueAt: new Date(2026, 10, 20, 11) }
+  ], now);
+  assert.equal(metrics.overdue, 1);
+  assert.equal(metrics.dueToday, 1);
+});
+
 test("category totals and weekly/monthly progress exclude deleted tasks", () => {
   const tasks = [
     { category: "Cá nhân", createdAt: new Date(2026, 10, 19), completedAt: new Date(2026, 10, 20), status: "completed" },

@@ -15,6 +15,17 @@ export function formatDate(value) {
   return new Intl.DateTimeFormat("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" }).format(d);
 }
 
+export function formatDateTime(value) {
+  if (!value) return "Chưa đặt hạn";
+  const d = value.toDate ? value.toDate() : new Date(value);
+  const time = new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).format(d);
+  return `${formatDate(d)} ${time}`;
+}
+
 export function toDateTimeLocal(date, time) {
   if (!date) return null;
   const [y,m,d] = date.split("-").map(Number);
@@ -85,7 +96,7 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
   priority.textContent = ({high:"Ưu tiên cao",medium:"Trung bình",low:"Ưu tiên thấp"})[task.priority] || "Trung bình";
   const due = document.createElement("span");
   due.className = "meta-chip";
-  due.textContent = task.dueAt ? "Hạn: " + formatDate(task.dueAt) : "Không có hạn";
+  due.textContent = task.dueAt ? "Hạn: " + formatDateTime(task.dueAt) : "Không có hạn";
   meta.append(category, priority);
   if (task.groupName) {
     const group = document.createElement("span");
@@ -232,18 +243,23 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
     check.title = completed ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành";
     check.setAttribute("aria-label", check.title);
     check.addEventListener("change", () => handlers.toggle?.(task, check.checked));
+    const completionControl = document.createElement("label");
+    completionControl.className = "task-completion-control";
+    const completionText = document.createElement("span");
+    completionText.textContent = completed ? "Đã hoàn thành" : "Đánh dấu hoàn thành";
+    completionControl.append(check, completionText);
     if (task.sharedReadOnly) {
       actions.append(makeAction("☷", "Cập nhật tiến độ và bình luận", () => handlers.collaborate?.(task)));
     } else {
       actions.append(
-      makeAction(task.favorite ? "★" : "☆", task.favorite ? "Bỏ yêu thích" : "Đánh dấu yêu thích",
-        () => handlers.favorite?.(task)),
-      makeAction("⧉", "Nhân bản", () => handlers.duplicate?.(task)),
-      makeAction("✎", "Sửa", () => handlers.edit?.(task)),
-      makeAction("☷", "Giao việc và bình luận", () => handlers.collaborate?.(task)),
-      makeAction("×", "Chuyển vào thùng rác", () => handlers.remove?.(task))
+        completionControl,
+        makeAction(task.favorite ? "★" : "☆", task.favorite ? "Bỏ yêu thích" : "Đánh dấu yêu thích",
+          () => handlers.favorite?.(task)),
+        makeAction("⧉", "Nhân bản", () => handlers.duplicate?.(task)),
+        makeAction("✎", "Sửa", () => handlers.edit?.(task)),
+        makeAction("☷", "Giao việc và bình luận", () => handlers.collaborate?.(task)),
+        makeAction("×", "Chuyển vào thùng rác", () => handlers.remove?.(task))
       );
-      row.append(check);
     }
   }
   row.append(main, actions);

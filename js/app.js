@@ -18,7 +18,8 @@ import {
   getCalendarDays, shiftTaskSchedule, startOfDay
 } from "./calendar-utils.mjs";
 import {
-  buildDateRangeReport, getCategoryStats, getDashboardMetrics, getProgressBuckets, taskProgress
+  buildDateRangeReport, getCategoryStats, getDashboardMetrics, getProgressBuckets,
+  isTaskOverdue, taskProgress
 } from "./report-utils.mjs";
 import { buildExcelXmlWorkbook } from "./report-export.mjs";
 import { createTelegramLink } from "./telegram.js";
@@ -713,7 +714,10 @@ function checkDueNotifications(initialScan = false) {
   }
   if(Number.isFinite(nextDue)){
     dueNotificationTimer=setTimeout(
-      ()=>checkDueNotifications(),
+      ()=>{
+        checkDueNotifications();
+        renderAll();
+      },
       Math.min(Math.max(0,nextDue-Date.now()),2_147_000_000)
     );
   }
@@ -1123,13 +1127,12 @@ $("exportPdfBtn").addEventListener("click", () => {
 
 function renderAll() {
   const now = new Date();
-  const start = new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const end = new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
   const dateOf = t => t.dueAt?.toDate ? t.dueAt.toDate() : (t.dueAt ? new Date(t.dueAt) : null);
   const activeTasks = tasks.filter(t => !t.deletedAt);
   const trashedTasks = tasks.filter(t => t.deletedAt);
   const pending = activeTasks.filter(t => t.status !== "completed");
-  const dueToday = pending.filter(t => { const d=dateOf(t); return d && d>=start && d<end; });
+  const dueToday = pending.filter(t => { const d=dateOf(t); return d && d>=now && d<end; });
   renderDashboardAnalytics(activeTasks, now);
 
   const handlers = {
@@ -1223,7 +1226,7 @@ function renderAll() {
   ].filter(Boolean).join(" ").toLowerCase().includes(search));
   renderTaskList($("allTasks"),withGroupNames(filtered),handlers);
   renderTaskList($("todayTasks"),withGroupNames(dueToday),handlers);
-  renderTaskList($("upcomingTasks"),withGroupNames(pending.filter(t=>{const d=dateOf(t);return d&&d>=end;}).sort((a,b)=>dateOf(a)-dateOf(b))),handlers);
+  renderTaskList($("upcomingTasks"),withGroupNames(pending.filter(t=>{const d=dateOf(t);return d&&d>now;}).sort((a,b)=>dateOf(a)-dateOf(b))),handlers);
   renderTaskList($("favoriteTasks"),withGroupNames(activeTasks.filter(t=>t.favorite)),handlers);
   renderTaskList($("trashTasks"),withGroupNames(trashedTasks),handlers,{trash:true});
   renderCalendar();
@@ -1243,7 +1246,7 @@ function renderCalendarTaskCard(task, sourceDate) {
   card.className=`calendar-task priority-${task.priority||"medium"}`;
   if(task.status==="completed")card.classList.add("calendar-task-completed");
   const due=asDate(task.dueAt);
-  if(task.status!=="completed"&&due&&due.getTime()<Date.now())card.classList.add("calendar-task-overdue");
+  if(isTaskOverdue(task,new Date()))card.classList.add("calendar-task-overdue");
   card.draggable=!task.sharedReadOnly;
   card.title=task.sharedReadOnly?"Nhấn để xem tiến độ và bình luận":"Kéo để đổi lịch · Nhấn để chỉnh sửa";
   const title=document.createElement("span");
@@ -1328,10 +1331,7 @@ function renderCalendar() {
   const visibleIds=new Set(visibleTasks.map(task=>task.id));
   const today=startOfDay(new Date());
   const unscheduled=filteredTasks.filter(task=>!asDate(task.startAt)&&!asDate(task.dueAt));
-  const overdue=filteredTasks.filter(task=>{
-    const due=asDate(task.dueAt);
-    return task.status!=="completed"&&due&&due.getTime()<Date.now();
-  });
+  const overdue=filteredTasks.filter(task=>isTaskOverdue(task));
 
   if(calendarMode==="day"){
     $("calendarRange").textContent=formatCalendarDate(days[0],{weekday:"long",day:"numeric",month:"long",year:"numeric"});
