@@ -211,3 +211,96 @@ html[data-theme="dark"] .nav-item:hover,
 html[data-theme="dark"] .nav-item.active{background:#263853;color:#9bbaff}
 html[data-theme="dark"] .calendar-day-today .calendar-day-heading{background:var(--blue);color:#fff}
 html[data-theme="dark"] .calendar-grid.calendar-day .calendar-day-today .calendar-day-heading{background:transparent;color:#9bbaff}
+@media(max-width:700px){
+  html:has(dialog[open]),body:has(dialog[open]){overflow:hidden}
+  .sidebar{inset:auto 0 0;width:100%;height:auto;min-height:68px;padding:5px 5px calc(5px + env(safe-area-inset-bottom));border-right:0;border-top:1px solid var(--line);background:#fff}
+  .sidebar>.brand,.sidebar>.side-label{display:none}
+  .sidebar>.sidebar-bottom{display:block;position:absolute;right:5px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:6;margin:0;padding:0 0 0 3px;background:inherit}
+  .sidebar-bottom .user-chip{display:none}
+  .sidebar-bottom .logout{display:flex;flex-direction:column;justify-content:center;gap:3px;width:54px;min-height:48px;padding:5px;border-radius:9px;font-size:8px;white-space:nowrap}
+  .sidebar-bottom .logout span{width:auto;font-size:15px;line-height:1}
+  .main-nav{display:flex;gap:3px;padding-right:60px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#8aa8ed #e8edf5}
+  .main-nav::-webkit-scrollbar{display:block;height:3px}
+  .main-nav::-webkit-scrollbar-track{background:#e8edf5;border-radius:3px}
+  .main-nav::-webkit-scrollbar-thumb{background:#8aa8ed;border-radius:3px}
+  .main-nav .nav-item,.main-nav .nav-item:not(.active){display:flex;flex:0 0 auto;flex-direction:column;justify-content:center;gap:3px;min-width:58px;min-height:48px;padding:5px 7px;border-radius:9px;font-size:9px;white-space:nowrap}
+  .main-nav .nav-item span,.main-nav .nav-item:not(.active) span{width:auto;font-size:15px;line-height:1}
+  .main-content{width:100%;margin-left:0;padding:18px 12px calc(86px + env(safe-area-inset-bottom))}
+  .topbar{align-items:center;margin-bottom:20px}
+  .topbar h2{font-size:18px;overflow-wrap:anywhere}
+  .top-actions{flex-direction:row;align-items:center;gap:0}
+  .top-actions .btn{min-height:44px;padding:9px 10px;font-size:10px;white-space:nowrap}
+  .welcome-row{flex-wrap:wrap}
+  .welcome-row>div:first-child{min-width:0;flex:1}
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat-card{min-width:0;padding:12px}
+  .stat-card strong{font-size:21px}
+  .form-grid{grid-template-columns:minmax(0,1fr)}
+  input,textarea,select{min-height:44px;font-size:16px}
+  input[type=checkbox],input[type=radio],input[type=color],input[type=range]{min-height:0}
+  .btn{min-height:44px}
+  .icon-button{display:inline-grid;place-items:center;min-width:44px;min-height:44px}
+  .text-button{min-height:44px}
+  .text-button{padding:10px}
+  .filter-tab,.calendar-mode{min-height:44px}
+  input[type=checkbox],input[type=radio]{width:18px;height:18px;padding:0;border-radius:4px}
+  input[type=color]{width:100%;height:44px;padding:4px}
+  input[type=range]{height:44px;padding:0 6px;border:0;border-radius:0;background:transparent}
+  .check-row,.days-off-grid label,.child-item{min-height:44px}
+  .settings-form input[type=color]{height:44px}
+  .profile-panel .btn,.settings-form>.btn,.settings-form .modal-actions .btn{width:100%}
+  .modal{width:calc(100% - 20px);max-width:none;max-height:calc(100dvh - 20px);padding:18px;border-radius:14px}
+  .modal-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+  .modal-actions .btn{width:100%;min-height:44px}
+  .attachment-link-row{grid-template-columns:minmax(0,1fr)}
+  .attachment-link-row .btn,.holiday-add-row .btn{width:100%}
+  .holiday-add-row{align-items:stretch;flex-direction:column}
+  .toolbar{gap:9px}
+  .filter-tabs{overflow-x:auto;justify-content:flex-start}
+  .filter-tab{flex:1 0 auto;padding:9px 10px;white-space:nowrap}
+  .toolbar>.btn,.toolbar>.group-filter,.toolbar>.search-input{width:100%;max-width:none}
+  .task-row{flex-wrap:wrap}
+  .task-main{min-width:calc(100% - 34px)}
+  .task-actions{flex:0 0 100%;justify-content:flex-end}
+  .task-actions .icon-button{min-width:44px;min-height:44px}
+  .calendar-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .calendar-tools .calendar-mode-tabs{grid-column:1/-1}
+  .calendar-tools select{width:100%;min-width:0}
+  .calendar-mode,.chart-mode{flex:1;min-height:44px}
+  .calendar-task{min-height:44px}
+  .report-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .report-controls label{width:auto;min-width:0}
+  .report-controls .btn{grid-column:1/-1;min-height:44px}
+  .report-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .report-actions .btn{min-width:0;min-height:44px;font-size:10px}
+  .admin-user-search{align-items:stretch;flex-direction:column}
+  .admin-user-search input{width:100%}
+  .collaboration-inline-form{grid-template-columns:minmax(0,1fr)}
+  .collaboration-inline-form .btn{width:100%}
+  .collaboration-member{align-items:flex-start;flex-wrap:wrap}
+  .collaboration-member-progress progress{width:min(150px,55vw)}
+  .collaboration-comment-form .btn{width:100%}
+  .days-off-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .notification-log-item{grid-template-columns:minmax(0,1fr) auto}
+  .notification-log-item time{grid-column:1}
+  .notification-log-status{grid-column:2;grid-row:1}
+  .telegram-account-panel .modal-actions{flex-wrap:wrap}
+}
+@media(max-width:380px){
+  .main-content{padding-right:9px;padding-left:9px}
+  .topbar h2{font-size:16px}
+  .top-actions .btn{padding:8px;font-size:9px}
+  .date-pill{max-width:44%;text-align:center}
+  .stat-card{padding:10px}
+  .stat-card>span{font-size:9px}
+  .panel{padding:12px}
+  .modal{padding:15px}
+  .main-nav .nav-item,.main-nav .nav-item:not(.active){min-width:53px;padding-right:5px;padding-left:5px;font-size:8px}
+  .report-actions{grid-template-columns:1fr}
+}
+html[data-theme="dark"] .main-nav{scrollbar-color:#6f94e8 #263247}
+html[data-theme="dark"] .main-nav::-webkit-scrollbar-track{background:#263247}
+@media(min-width:701px){
+  .brand,.sidebar>.side-label,.sidebar-bottom{flex-shrink:0}
+  .main-nav{flex:1;min-height:0;overflow-y:auto;align-content:start}
+}

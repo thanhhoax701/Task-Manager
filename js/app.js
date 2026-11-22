@@ -45,7 +45,7 @@ let userRole = "user", collaborationTask = null, editingTaskOwnerUid = null, adm
 const views = ["dashboard","tasks","calendar","today","upcoming","favorites","trash","settings"];
 const titles = {
   dashboard:"Tổng quan",tasks:"Tất cả công việc",calendar:"Lịch & kế hoạch",today:"Hôm nay",
-  upcoming:"Sắp tới",favorites:"Yêu thích",trash:"Thùng rác",settings:"Cài đặt hệ thống"
+  upcoming:"Sắp tới",favorites:"Yêu thích",trash:"Thùng rác",settings:"Người dùng"
 };
 const DEFAULT_SETTINGS = {
   theme:"light",accentColor:"#2563eb",workStart:"09:00",workEnd:"17:00",
@@ -1521,13 +1521,6 @@ $("groupFilter").addEventListener("change",()=>{
   activeGroup=$("groupFilter").value||null;
   activeCategory=null;
   renderAll();
-});
-
-const categories=["Cá nhân","Công việc","IT","Gia đình","Khác"];
-categories.forEach(category=>{
-  const b=document.createElement("button"); b.innerHTML=`<i></i>${category}`;
-  b.addEventListener("click",()=>{activeGroup=null;$("groupFilter").value="";activeCategory=category;goView("tasks",true);renderAll();});
-  $("categoryList").append(b);
 });
 
 function renderGroups() {
