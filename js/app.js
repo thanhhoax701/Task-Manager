@@ -1119,9 +1119,14 @@ function renderAll() {
         await setTaskStatus(t.ownerUid || currentUser.uid,t.id,checked?"completed":"pending");
         if(checked&&["daily","weekly","monthly","yearly"].includes(t.recurrence)){
           showToast("Đã hoàn thành; công việc cho kỳ tiếp theo đã được tạo.");
+        }else{
+          showToast(checked?"Đã đánh dấu công việc hoàn thành.":"Đã mở lại công việc.");
         }
         await recordActivity(`${checked?"Hoàn thành":"Mở lại"} công việc: ${t.title}`);
-      } catch(e){showToast(e.message);}
+      } catch(e){
+        renderAll();
+        showToast("Không cập nhật được trạng thái công việc: "+e.message);
+      }
     },
     edit: t => t.sharedReadOnly ? openCollaboration(t) : openEditTask(t),
     collaborate: openCollaboration,

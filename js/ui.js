@@ -226,10 +226,11 @@ export function renderTask(task, handlers = {}, { trash = false } = {}) {
     const check = document.createElement("input");
     check.type = "checkbox";
     check.className = "task-check";
-    check.checked = task.status === "completed";
+    const completed = task.status === "completed";
+    check.checked = completed;
     check.disabled = Boolean(task.sharedReadOnly);
-    check.title = "Đánh dấu hoàn thành";
-    check.setAttribute("aria-label", "Đánh dấu hoàn thành");
+    check.title = completed ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành";
+    check.setAttribute("aria-label", check.title);
     check.addEventListener("change", () => handlers.toggle?.(task, check.checked));
     if (task.sharedReadOnly) {
       actions.append(makeAction("☷", "Cập nhật tiến độ và bình luận", () => handlers.collaborate?.(task)));
