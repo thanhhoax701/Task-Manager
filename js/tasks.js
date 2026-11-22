@@ -275,26 +275,26 @@ export async function ensureTasksMigrated(uid) {
   const migrationSnapshot = await getRealtimeValue(migrationRef);
   if (migrationSnapshot.exists()) return { migrated: false, copied: 0 };
 
-  const [firestoreSnapshot, existingTasksSnapshot] = await Promise.all([
-    getDocs(collection(db, "users", uid, "tasks")),
-    getRealtimeValue(tasksRef(uid))
-  ]);
-  const existingTasks = existingTasksSnapshot.val() || {};
-  const migratedTasks = {};
-
-  for (const taskSnapshot of firestoreSnapshot.docs) {
-    if (Object.prototype.hasOwnProperty.call(existingTasks, taskSnapshot.id)) continue;
-    migratedTasks[taskSnapshot.id] = serializeTask(taskSnapshot.data());
-  }
-
-  if (Object.keys(migratedTasks).length) {
-    await update(tasksRef(uid), migratedTasks);
-  }
+  const firestoreSnapshot = await getDocs(collection(db, "users", uid, "tasks"));
+  const legacyTasks = Object.fromEntries(firestoreSnapshot.docs.map(taskSnapshot => [
+    taskSnapshot.id,
+    serializeTask(taskSnapshot.data())
+  ]));
+  let copied = 0;
+  const migration = await runTransaction(tasksRef(uid), current => {
+    const existing = current || {};
+    const missing = Object.fromEntries(Object.entries(legacyTasks).filter(([id]) =>
+      !Object.prototype.hasOwnProperty.call(existing, id)
+    ));
+    copied = Object.keys(missing).length;
+    return copied ? { ...existing, ...missing } : undefined;
+  });
+  if (!migration.committed) copied = 0;
   await set(migrationRef, {
     completedAt: serverTimestamp(),
-    copiedCount: Object.keys(migratedTasks).length
+    copiedCount: copied
   });
-  return { migrated: true, copied: Object.keys(migratedTasks).length };
+  return { migrated: true, copied };
 }
 
 export async function saveTask(uid, data, taskId = null) {

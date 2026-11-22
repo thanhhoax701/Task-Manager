@@ -107,7 +107,7 @@ async function callAuthenticatedApi(path, body) {
   try {
     result = await response.json();
   } catch {
-    throw new Error("Máy chủ trả về phản hồi không hợp lệ.");
+    throw new Error(`Máy chủ trả về HTTP ${response.status} với phản hồi không hợp lệ.`);
   }
   if (!response.ok) throw new Error(result.error || "Yêu cầu không thành công.");
   return result;
@@ -808,7 +808,7 @@ function friendlyError(err) {
   return map[err.code] || err.message || "Có lỗi xảy ra.";
 }
 
-async function initializeUserSession(user) {
+async function updateUserRole(user) {
   let resolvedRole = "user";
   try {
     const bootstrap = await callAuthenticatedApi("/api/bootstrap-admin", {});
@@ -828,33 +828,53 @@ async function initializeUserSession(user) {
   if (currentUser?.uid !== user.uid) return;
   userRole = resolvedRole;
   renderUserRole();
+  renderAll();
+}
 
+async function loadUserProfile(user) {
   let profile = {};
   try {
     const profileRef = doc(db, "users", user.uid);
     const snapshot = await getDoc(profileRef);
     profile = snapshot.data() || {};
+    if (currentUser?.uid !== user.uid) return;
     const displayName = profile.displayName || user.displayName || user.email?.split("@")[0] || "";
-    await setDoc(profileRef, {
-      email: user.email || null,
-      displayName,
-      photoURL: user.photoURL || profile.photoURL || null,
-      ...(!profile.createdAt ? { createdAt: serverTimestamp() } : {}),
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-    profile = { ...profile, displayName, email: user.email || null };
+    const email = user.email || null;
+    const photoURL = user.photoURL || profile.photoURL || null;
+    if (!snapshot.exists() || profile.email !== email || profile.displayName !== displayName ||
+      profile.photoURL !== photoURL || !profile.createdAt) {
+      await setDoc(profileRef, {
+        email,
+        displayName,
+        photoURL,
+        ...(!profile.createdAt ? { createdAt: serverTimestamp() } : {}),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+    profile = { ...profile, displayName, email };
   } catch (error) {
-    showToast("Không tải được hồ sơ cá nhân: " + error.message);
+    if (currentUser?.uid === user.uid) {
+      showToast("Không tải được hồ sơ cá nhân: " + error.message);
+    }
   }
   if (currentUser?.uid !== user.uid) return;
   renderProfileForm(user, profile);
-  try {
-    const migration = await ensureTasksMigrated(user.uid);
-    if (migration.copied) showToast(`Đã chuyển ${migration.copied} công việc cũ sang Realtime Database.`);
-  } catch (error) {
-    showToast("Không chuyển được dữ liệu cũ: " + error.message);
-  }
+}
+
+function initializeUserSession(user) {
   if (currentUser?.uid !== user.uid) return;
+  renderProfileForm(user);
+  void updateUserRole(user);
+  void loadUserProfile(user);
+  void ensureTasksMigrated(user.uid).then(migration => {
+    if (currentUser?.uid === user.uid && migration.copied) {
+      showToast(`Đã chuyển ${migration.copied} công việc cũ sang Realtime Database.`);
+    }
+  }).catch(error => {
+    if (currentUser?.uid === user.uid) {
+      showToast("Không chuyển được dữ liệu cũ: " + error.message);
+    }
+  });
 
   settingsUnsubscribe = subscribeSettings(user.uid, data => {
     if(currentUser?.uid!==user.uid) return;
